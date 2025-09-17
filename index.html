@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expiry Guard - Advanced Product Expiry Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <h1 class="app-title">🛡️ Expiry Guard Pro</h1>
+                <nav class="nav-menu">
+                    <button class="nav-btn active" data-view="dashboard">Dashboard</button>
+                    <button class="nav-btn" data-view="reports">Reports</button>
+                    <button class="nav-btn" data-view="settings">Settings</button>
+                </nav>
+                <div class="header-actions">
+                    <button class="btn-icon" id="exportData" aria-label="Export data" title="Export Data">
+                        <span>📤</span>
+                    </button>
+                    <button class="btn-icon" id="bulkActions" aria-label="Bulk actions" title="Bulk Actions">
+                        <span>📋</span>
+                    </button>
+                    <button class="btn-icon" id="darkModeToggle" aria-label="Toggle dark mode">
+                        <span class="theme-icon">🌙</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Dashboard View -->
+            <div id="dashboard-view" class="view active">
+                <!-- Dashboard Stats -->
+                <section class="dashboard">
+                    <h2>Dashboard Analytics</h2>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number" id="totalProducts">0</div>
+                            <div class="stat-label">Total Products</div>
+                        </div>
+                        <div class="stat-card stat-card--warning">
+                            <div class="stat-number" id="expiringSoon">0</div>
+                            <div class="stat-label">Expiring Soon</div>
+                        </div>
+                        <div class="stat-card stat-card--danger">
+                            <div class="stat-number" id="expiredProducts">0</div>
+                            <div class="stat-label">Expired</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="totalValue">$0</div>
+                            <div class="stat-label">Total Value</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Charts Section -->
+                <section class="charts-section">
+                    <div class="charts-grid">
+                        <div class="chart-container" style="position: relative; height: 300px;">
+                            <canvas id="categoryChart"></canvas>
+                        </div>
+                        <div class="chart-container" style="position: relative; height: 300px;">
+                            <canvas id="expiryTrendChart"></canvas>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Add Product Section -->
+                <section class="add-product-section">
+                    <div class="section-header">
+                        <h2>Add Product</h2>
+                        <div class="add-product-tabs">
+                            <button class="tab-btn active" data-tab="manual">Manual Entry</button>
+                            <button class="tab-btn" data-tab="scanner">Scan Barcode</button>
+                            <button class="tab-btn" data-tab="ocr">OCR Scan</button>
+                        </div>
+                    </div>
+
+                    <!-- Manual Entry Form -->
+                    <div class="tab-content active" id="manual-tab">
+                        <div class="card">
+                            <form id="addProductForm">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label" for="productName">Product Name *</label>
+                                        <input type="text" id="productName" class="form-control" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="category">Category</label>
+                                        <select id="category" class="form-control">
+                                            <option value="Dairy">Dairy</option>
+                                            <option value="Bakery">Bakery</option>
+                                            <option value="Meat & Fish">Meat & Fish</option>
+                                            <option value="Vegetables">Vegetables</option>
+                                            <option value="Fruits">Fruits</option>
+                                            <option value="Snacks">Snacks</option>
+                                            <option value="Beverages">Beverages</option>
+                                            <option value="Medicine">Medicine</option>
+                                            <option value="Frozen">Frozen</option>
+                                            <option value="Canned Goods">Canned Goods</option>
+                                            <option value="Condiments">Condiments</option>
+                                            <option value="Spices">Spices</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label" for="expiryDate">Expiry Date *</label>
+                                        <input type="date" id="expiryDate" class="form-control" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="purchaseDate">Purchase Date</label>
+                                        <input type="date" id="purchaseDate" class="form-control">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label" for="price">Price ($)</label>
+                                        <input type="number" id="price" class="form-control" step="0.01" min="0">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="quantity">Quantity</label>
+                                        <input type="number" id="quantity" class="form-control" min="1" value="1">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label" for="barcode">Barcode</label>
+                                        <input type="text" id="barcode" class="form-control">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="location">Storage Location</label>
+                                        <select id="location" class="form-control">
+                                            <option value="Refrigerator">Refrigerator</option>
+                                            <option value="Freezer">Freezer</option>
+                                            <option value="Pantry">Pantry</option>
+                                            <option value="Kitchen Counter">Kitchen Counter</option>
+                                            <option value="Medicine Cabinet">Medicine Cabinet</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="notes">Notes</label>
+                                    <textarea id="notes" class="form-control" rows="3"></textarea>
+                                </div>
+                                <button type="submit" class="btn btn--primary btn--full-width">Add Product</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Barcode Scanner -->
+                    <div class="tab-content" id="scanner-tab">
+                        <div class="card">
+                            <div class="scanner-container">
+                                <div id="qr-reader" style="width: 100%;"></div>
+                                <div class="scanner-controls">
+                                    <button id="startScanner" class="btn btn--primary">Start Scanner</button>
+                                    <button id="stopScanner" class="btn btn--secondary" style="display: none;">Stop Scanner</button>
+                                </div>
+                                <div id="scanResult" class="scan-result" style="display: none;">
+                                    <h3>Scanned Barcode: <span id="scannedBarcode"></span></h3>
+                                    <p>Please enter product details:</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- OCR Scanner -->
+                    <div class="tab-content" id="ocr-tab">
+                        <div class="card">
+                            <div class="ocr-container">
+                                <div class="ocr-upload">
+                                    <input type="file" id="ocrImageInput" accept="image/*" class="file-input">
+                                    <label for="ocrImageInput" class="file-label">
+                                        <span class="file-icon">📸</span>
+                                        <span>Click to capture or upload image</span>
+                                    </label>
+                                </div>
+                                <div id="ocrPreview" class="ocr-preview" style="display: none;">
+                                    <img id="previewImage" alt="Preview">
+                                    <button id="processOCR" class="btn btn--primary">Extract Text</button>
+                                </div>
+                                <div id="ocrProgress" class="ocr-progress" style="display: none;">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill"></div>
+                                    </div>
+                                    <div class="progress-text">Processing image...</div>
+                                </div>
+                                <div id="ocrResult" class="ocr-result" style="display: none;">
+                                    <h4>Extracted Text:</h4>
+                                    <div id="extractedText" class="extracted-text"></div>
+                                    <div id="detectedDates" class="detected-dates"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Products Section -->
+                <section class="products-section">
+                    <div class="section-header">
+                        <h2>Products</h2>
+                        <div class="products-controls">
+                            <div class="search-container">
+                                <input type="text" id="searchInput" class="form-control" placeholder="Search products...">
+                            </div>
+                            <select id="filterCategory" class="form-control">
+                                <option value="">All Categories</option>
+                                <option value="Dairy">Dairy</option>
+                                <option value="Bakery">Bakery</option>
+                                <option value="Meat & Fish">Meat & Fish</option>
+                                <option value="Vegetables">Vegetables</option>
+                                <option value="Fruits">Fruits</option>
+                                <option value="Snacks">Snacks</option>
+                                <option value="Beverages">Beverages</option>
+                                <option value="Medicine">Medicine</option>
+                                <option value="Other">Other</option>
+                            </select>
+                            <select id="filterExpiry" class="form-control">
+                                <option value="">All Products</option>
+                                <option value="expired">Expired</option>
+                                <option value="expiring">Expiring Soon</option>
+                                <option value="fresh">Fresh</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="bulk-controls" id="bulkControls" style="display: none;">
+                        <div class="bulk-actions">
+                            <button id="selectAll" class="btn btn--outline">Select All</button>
+                            <button id="deselectAll" class="btn btn--outline">Deselect All</button>
+                            <button id="bulkDelete" class="btn btn--outline btn--danger">Delete Selected</button>
+                            <span id="selectedCount" class="selected-count">0 selected</span>
+                        </div>
+                    </div>
+
+                    <div id="productsGrid" class="products-grid">
+                        <!-- Products will be dynamically inserted here -->
+                    </div>
+
+                    <div id="emptyState" class="empty-state" style="display: none;">
+                        <div class="empty-state-icon">📦</div>
+                        <h3>No products found</h3>
+                        <p>Add your first product to get started!</p>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Reports View -->
+            <div id="reports-view" class="view">
+                <section class="reports-section">
+                    <h2>Monthly Reports</h2>
+                    <div class="reports-controls">
+                        <button id="generateReport" class="btn btn--primary">Generate Report</button>
+                        <select id="reportMonth" class="form-control">
+                            <option value="current">Current Month</option>
+                            <option value="last">Last Month</option>
+                        </select>
+                    </div>
+                    <div id="reportPreview" class="report-preview" style="display: none;">
+                        <div class="report-content">
+                            <div class="report-header">
+                                <h3 id="reportTitle">Monthly Report</h3>
+                                <div id="reportDate"></div>
+                            </div>
+                            <div class="report-stats">
+                                <div class="report-stat">
+                                    <div class="report-stat-value" id="reportTotalProducts">0</div>
+                                    <div class="report-stat-label">Total Products</div>
+                                </div>
+                                <div class="report-stat">
+                                    <div class="report-stat-value" id="reportExpired">0</div>
+                                    <div class="report-stat-label">Expired Products</div>
+                                </div>
+                                <div class="report-stat">
+                                    <div class="report-stat-value" id="reportValue">$0</div>
+                                    <div class="report-stat-label">Total Value</div>
+                                </div>
+                            </div>
+                            <div class="report-chart">
+                                <canvas id="reportChart" style="height: 300px;"></canvas>
+                            </div>
+                        </div>
+                        <div class="report-actions">
+                            <button id="downloadReport" class="btn btn--primary">Download PDF</button>
+                            <button id="exportReportData" class="btn btn--secondary">Export Data</button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Settings View -->
+            <div id="settings-view" class="view">
+                <section class="settings-section">
+                    <h2>Settings</h2>
+                    <div class="settings-grid">
+                        <div class="settings-group">
+                            <h3>Notifications</h3>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <input type="checkbox" id="notificationsEnabled" checked> Enable Notifications
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="alertThreshold">Alert Days Before Expiry</label>
+                                <input type="number" id="alertThreshold" class="form-control" value="3" min="1" max="30">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <input type="checkbox" id="soundEnabled" checked> Sound Alerts
+                                </label>
+                            </div>
+                        </div>
+                        <div class="settings-group">
+                            <h3>Data Management</h3>
+                            <div class="form-group">
+                                <button id="backupData" class="btn btn--outline btn--full-width">Backup Data</button>
+                            </div>
+                            <div class="form-group">
+                                <label for="importData" class="btn btn--outline btn--full-width">
+                                    Import Data
+                                    <input type="file" id="importData" accept=".json" style="display: none;">
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <button id="clearData" class="btn btn--outline btn--danger btn--full-width">Clear All Data</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- Product Details Modal -->
+    <div id="productModal" class="modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Edit Product</h3>
+                <button class="modal-close" id="closeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editProductForm">
+                    <input type="hidden" id="editProductId">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="editProductName">Product Name *</label>
+                            <input type="text" id="editProductName" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="editCategory">Category</label>
+                            <select id="editCategory" class="form-control">
+                                <option value="Dairy">Dairy</option>
+                                <option value="Bakery">Bakery</option>
+                                <option value="Meat & Fish">Meat & Fish</option>
+                                <option value="Vegetables">Vegetables</option>
+                                <option value="Fruits">Fruits</option>
+                                <option value="Snacks">Snacks</option>
+                                <option value="Beverages">Beverages</option>
+                                <option value="Medicine">Medicine</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="editExpiryDate">Expiry Date *</label>
+                            <input type="date" id="editExpiryDate" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="editPrice">Price ($)</label>
+                            <input type="number" id="editPrice" class="form-control" step="0.01" min="0">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="editQuantity">Quantity</label>
+                            <input type="number" id="editQuantity" class="form-control" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="editLocation">Storage Location</label>
+                            <select id="editLocation" class="form-control">
+                                <option value="Refrigerator">Refrigerator</option>
+                                <option value="Freezer">Freezer</option>
+                                <option value="Pantry">Pantry</option>
+                                <option value="Kitchen Counter">Kitchen Counter</option>
+                                <option value="Medicine Cabinet">Medicine Cabinet</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="editNotes">Notes</label>
+                        <textarea id="editNotes" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" id="deleteProduct" class="btn btn--outline btn--danger">Delete</button>
+                        <button type="submit" class="btn btn--primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Processing...</div>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notifications" class="notifications-container"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
